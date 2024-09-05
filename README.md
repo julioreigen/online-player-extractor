@@ -25,12 +25,14 @@ Find your video in the folder and enjoy!
 Clone the project  
  
 ```bash  
- git clone https://github.com/julioreigen/online-player-extractor.git```  
+ git clone https://github.com/julioreigen/online-player-extractor.git
+ ```  
   
 Open your IDE and go to the project directory  
   
 ```bash  
- cd online-player-extractor```  
+ cd online-player-extractor
+ ```  
   
   
 Run Launcher.java located in ***src/main/java/com/julioreigen/ope/onlineplayerextractor***

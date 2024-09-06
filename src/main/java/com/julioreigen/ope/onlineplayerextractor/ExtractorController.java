@@ -3,6 +3,7 @@ package com.julioreigen.ope.onlineplayerextractor;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 
@@ -16,17 +17,20 @@ import java.util.regex.Pattern;
 public class ExtractorController {
     public ExtractorController() {
     }
+    protected static Process ffmpegProcess;
 
-    protected Task<Void> createExtractionTask(String inputFile, String outputFile, ProgressBar progressBar, TextArea progressText) {
+    protected Task<Void> createExtractionTask(String inputFile, String outputFile, ProgressBar progressBar, TextArea progressText, Button stopButton) {
         return new Task<>() {
             @Override
             protected Void call() {
                 try {
                     String os = System.getProperty("os.name").toLowerCase();
 
-                    Process process = getProcess(os, inputFile, outputFile);
+                    ProcessBuilder processBuilder = getProcessBuilder(os, inputFile, outputFile);
+                    ffmpegProcess = processBuilder.start();
 
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(ffmpegProcess.getInputStream()));
                     String line;
                     Pattern durationPattern = Pattern.compile("(?<=Duration: )[^,]*");
                     Pattern timePattern = Pattern.compile("(?<=time=)[\\d:.]*");
@@ -53,7 +57,7 @@ public class ExtractorController {
                             }
                         }
                     }
-                    int exitCode = process.waitFor();
+                    int exitCode = ffmpegProcess.waitFor();
                     if (exitCode == 0) {
                         Platform.runLater(() -> {
                             Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -71,22 +75,25 @@ public class ExtractorController {
                             alert.showAndWait();
                      });
                     }
-                } catch (Exception ex) {
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
                     Platform.runLater(() -> {
                         Alert alert = new Alert(Alert.AlertType.ERROR);
                         alert.setTitle("Exception Occurred");
                         alert.setHeaderText(null);
-                        alert.setContentText("An error occurred during the OPE process:\n" + ex.getMessage());
+                        alert.setContentText("An error occurred during the OPE process:\n" + e.getMessage());
                         alert.showAndWait();
                     });
-                    ex.printStackTrace();
+                }finally {
+                    stopButton.setDisable(true);
                 }
                 return null;
             }
         };
     }
 
-    private static Process getProcess(String os, String inputFile, String outputFile) throws IOException {
+    private static ProcessBuilder getProcessBuilder(String os, String inputFile, String outputFile) {
         String command = "ffmpeg -protocol_whitelist file,http,https,tcp,tls,crypto -i \"" + inputFile + "\" -c copy \"" + outputFile + "\"";
         ProcessBuilder processBuilder;
 
@@ -97,8 +104,7 @@ public class ExtractorController {
         }
 
         processBuilder.redirectErrorStream(true);
-        Process process = processBuilder.start();
-        return process;
+        return processBuilder;
     }
 
     private double calculateProgress(String duration, String currentTime) {

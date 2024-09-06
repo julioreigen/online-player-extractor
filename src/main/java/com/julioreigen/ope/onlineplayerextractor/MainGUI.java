@@ -17,8 +17,13 @@ public class MainGUI extends Application {
     public void start(Stage primaryStage) {
         StageData sd = new StageData(primaryStage);
         sd.configure();
+        Scene scene;
 
-        Scene scene = new Scene(sd.getVbox(), 400, 250);
+        if (System.getProperty("os.name").toLowerCase().contains("win"))
+            scene = new Scene(sd.getVbox(), 450, 250);
+        else
+            scene = new Scene(sd.getVbox(), 650, 250);
+
 
         primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/Icon.png"))));
         primaryStage.setTitle("Online Player Extractor");

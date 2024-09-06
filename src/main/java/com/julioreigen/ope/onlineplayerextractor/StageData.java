@@ -6,20 +6,19 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-
 import java.io.File;
+
+import static com.julioreigen.ope.onlineplayerextractor.ExtractorController.ffmpegProcess;
+
 
 public class StageData {
     private Stage st;
     private File lastDirectory;
     private final ExtractorController ec = new ExtractorController();
-    private Label labelFileURL;
-    private Label labelOutput;
+    private Label labelFileURL, labelOutput;
     private TextArea progressText;
     private TextField fileURL;
-    private Button chooseOutputBt;
-    private Button openOutputDirBt;
-    private Button executeBt;
+    private Button chooseOutputBt, openOutputDirBt, executeBt, stopBt;
     private ProgressBar progressBar;
     private FileChooser fileChooser;
     private File[] outputFile;
@@ -45,6 +44,7 @@ public class StageData {
         progressBar.setPrefWidth(300);
 
         executeBt = new Button("Extract");
+        stopBt = new Button("Stop");
 
         fileChooser = new FileChooser();
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("MPEG file(*.mp4)", "*.mp4");
@@ -60,9 +60,10 @@ public class StageData {
             if (lastDirectory != null)
                 fileChooser.setInitialDirectory(lastDirectory);
 
-            outputFile[0] = fileChooser.showSaveDialog(st);
+            File chosenFile = fileChooser.showSaveDialog(st);
 
-            if (outputFile[0] != null) {
+            if (chosenFile != null) {
+                outputFile[0] = getUniqueFile(chosenFile);
                 lastDirectory = outputFile[0].getParentFile();
                 labelOutput.setText("Output File: " + outputFile[0].getAbsolutePath());
                 executeBt.setDisable(false);
@@ -72,11 +73,13 @@ public class StageData {
 
         executeBt.setDisable(true);
         openOutputDirBt.setDisable(true);
+        stopBt.setDisable(true);
 
         executeBt.setOnAction(e -> {
             String input = fileURL.getText();
             if (outputFile[0] != null) {
-                Task<Void> task = ec.createExtractionTask(input, outputFile[0].getAbsolutePath(), progressBar, progressText);
+                Task<Void> task = ec.createExtractionTask(input, outputFile[0].getAbsolutePath(), progressBar, progressText, stopBt);
+                stopBt.setDisable(false);
                 new Thread(task).start();
             }
         });
@@ -86,11 +89,42 @@ public class StageData {
                 ec.openDir(outputFile[0]);
             }
         });
+
+        stopBt.setOnAction(e -> {
+            if (ffmpegProcess != null) {
+                ffmpegProcess.destroy();
+                stopBt.setDisable(true);
+            }
+        });
+
+        st.setOnCloseRequest(e -> {
+            if (ffmpegProcess != null && ffmpegProcess.isAlive()) {
+                ffmpegProcess.destroy();
+            }
+        });
+    }
+
+    private File getUniqueFile(File file) {
+        String fileName = file.getName();
+        String fileDir = file.getParent();
+        String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
+        String extension = fileName.substring(fileName.lastIndexOf('.'));
+
+        int count = 1;
+        File uniqueFile = new File(fileDir, fileName);
+
+        while (uniqueFile.exists()) {
+            uniqueFile = new File(fileDir, baseName + "_" + count + extension);
+            count++;
+        }
+
+        return uniqueFile;
     }
 
     protected VBox getVbox(){
-        HBox hbox = new HBox(10, chooseOutputBt, openOutputDirBt);
+        HBox hbox = new HBox(10,  chooseOutputBt, openOutputDirBt);
+        HBox hbox2 = new HBox(15, executeBt, stopBt);
 
-        return new VBox(10, labelFileURL, fileURL, labelOutput, hbox, progressBar, executeBt, progressText);
+        return new VBox(10, labelFileURL, fileURL, labelOutput, hbox, progressBar, hbox2, progressText);
     }
 }

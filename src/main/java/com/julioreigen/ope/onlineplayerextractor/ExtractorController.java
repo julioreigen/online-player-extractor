@@ -17,7 +17,7 @@ public class ExtractorController {
     public ExtractorController() {
     }
 
-    protected Task<Void> createExtractionTask(String inputFile, String outputFile, ProgressBar progressBar, TextArea progressText   ) {
+    protected Task<Void> createExtractionTask(String inputFile, String outputFile, ProgressBar progressBar, TextArea progressText) {
         return new Task<>() {
             @Override
             protected Void call() {
@@ -130,7 +130,7 @@ public class ExtractorController {
         }
         if (os.contains("mac")) {
             try {
-                Runtime.getRuntime().exec("open -R" + file.getParent());
+                Runtime.getRuntime().exec("open -R " + file.getParent());
             } catch (IOException e) {
                 e.printStackTrace();
             }

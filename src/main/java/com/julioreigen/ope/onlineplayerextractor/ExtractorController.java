@@ -71,7 +71,7 @@ public class ExtractorController {
                             Alert alert = new Alert(Alert.AlertType.ERROR);
                             alert.setTitle("Extraction Error");
                             alert.setHeaderText(null);
-                            alert.setContentText("OPE process encountered an error. Exit code: " + exitCode);
+                            alert.setContentText("An error ocurred! Maybe your URL doesn't work.\nLook at the logs in the bottom!\nExit code: " + exitCode);
                             alert.showAndWait();
                      });
                     }

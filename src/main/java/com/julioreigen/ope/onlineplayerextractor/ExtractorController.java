@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,7 +20,7 @@ public class ExtractorController {
     }
     protected static Process ffmpegProcess;
 
-    protected Task<Void> createExtractionTask(String inputFile, String outputFile, ProgressBar progressBar, TextArea progressText, Button stopButton) {
+    protected Task<Void> createExtractionTask(String inputFile, String outputFile, ProgressBar progressBar, TextArea progressText, Button stopButton, AtomicBoolean isStoppedByUser) {
         return new Task<>() {
             @Override
             protected Void call() {
@@ -58,7 +59,7 @@ public class ExtractorController {
                         }
                     }
                     int exitCode = ffmpegProcess.waitFor();
-                    if (exitCode == 0) {
+                    if (exitCode == 0 && !isStoppedByUser.get()) {
                         Platform.runLater(() -> {
                             Alert alert = new Alert(Alert.AlertType.INFORMATION);
                             alert.setTitle("Extraction completed!");
@@ -66,8 +67,9 @@ public class ExtractorController {
                             alert.setContentText("Video was successfully extracted to the output directory!");
                             alert.showAndWait();
                         });
-                    } else {
+                    } else if (!isStoppedByUser.get()) {
                         Platform.runLater(() -> {
+                            System.out.println(isStoppedByUser.get());
                             Alert alert = new Alert(Alert.AlertType.ERROR);
                             alert.setTitle("Extraction Error");
                             alert.setHeaderText(null);
@@ -75,16 +77,16 @@ public class ExtractorController {
                             alert.showAndWait();
                      });
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    Platform.runLater(() -> {
-                        Alert alert = new Alert(Alert.AlertType.ERROR);
-                        alert.setTitle("Exception Occurred");
-                        alert.setHeaderText(null);
-                        alert.setContentText("An error occurred during the OPE process:\n" + e.getMessage());
-                        alert.showAndWait();
-                    });
+                } catch (IOException | InterruptedException e) {
+                    if (!isStoppedByUser.get()) {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setTitle("Exception Occurred");
+                            alert.setHeaderText(null);
+                            alert.setContentText("An error occurred during the OPE process:\n" + e.getMessage());
+                            alert.showAndWait();
+                        });
+                    }
                 }finally {
                     stopButton.setDisable(true);
                 }

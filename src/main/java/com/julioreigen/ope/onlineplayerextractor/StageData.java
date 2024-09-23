@@ -7,6 +7,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import java.io.File;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.julioreigen.ope.onlineplayerextractor.ExtractorController.ffmpegProcess;
 
@@ -22,6 +23,7 @@ public class StageData {
     private ProgressBar progressBar;
     private FileChooser fileChooser;
     private File[] outputFile;
+    private final AtomicBoolean isStoppedByUser = new AtomicBoolean(false);
 
     public StageData() {
     }
@@ -76,9 +78,10 @@ public class StageData {
         stopBt.setDisable(true);
 
         executeBt.setOnAction(e -> {
+            isStoppedByUser.set(false);
             String input = fileURL.getText();
             if (outputFile[0] != null) {
-                Task<Void> task = ec.createExtractionTask(input, outputFile[0].getAbsolutePath(), progressBar, progressText, stopBt);
+                Task<Void> task = ec.createExtractionTask(input, outputFile[0].getAbsolutePath(), progressBar, progressText, stopBt, isStoppedByUser);
                 stopBt.setDisable(false);
                 new Thread(task).start();
             }
@@ -92,7 +95,13 @@ public class StageData {
 
         stopBt.setOnAction(e -> {
             if (ffmpegProcess != null) {
-                ffmpegProcess.destroy();
+                isStoppedByUser.set(true);
+                if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    ffmpegProcess.descendants().forEach(ProcessHandle::destroyForcibly);
+                    ffmpegProcess.destroyForcibly();
+                } else {
+                    ffmpegProcess.destroy();
+                }
                 stopBt.setDisable(true);
             }
         });
